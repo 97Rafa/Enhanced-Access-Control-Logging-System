@@ -20,6 +20,8 @@ fopen(const char *path, const char *mode)
 	original_fopen = dlsym(RTLD_NEXT, "fopen");
 	original_fopen_ret = (*original_fopen)(path, mode);
 
+	// Logging the action
+
 	char *uid;
 	char date[20];
     char timestamp[20];
@@ -32,11 +34,24 @@ fopen(const char *path, const char *mode)
     sprintf(timestamp,"%d:%d", tm.tm_hour, tm.tm_min);
 
 	
-	unsigned char *MD5(const unsigned char *d, unsigned long n, unsigned char *md);
+	// unsigned char *MD5(const unsigned char *d, unsigned long n, unsigned char *md);
 
-	int MD5_Init(MD5_CTX *c);
-	int MD5_Update(MD5_CTX *c, const void *data, unsigned long len);
-	int MD5_Final(unsigned char *md, MD5_CTX *c);
+	// int MD5_Init(MD5_CTX *c);
+	// int MD5_Update(MD5_CTX *c, const void *data, unsigned long len);
+	// int MD5_Final(unsigned char *md, MD5_CTX *c);
+
+	//	Writing to the log file
+	FILE *fptr;
+	fptr = fopen("file_logging.log","a");
+
+	if(fptr == NULL)
+	{
+		printf("Error!");   
+		exit(1);             
+	}
+
+	fprintf(fptr,"%s | %s | %s | %s",uid, path, date, timestamp);
+	fclose(fptr);
 
 	return original_fopen_ret;
 }
@@ -53,6 +68,7 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 	original_fwrite = dlsym(RTLD_NEXT, "fwrite");
 	original_fwrite_ret = (*original_fwrite)(ptr, size, nmemb, stream);
 
+	// Logging the action
 
 	char *uid;
 	char date[20];
