@@ -7,7 +7,7 @@ int main()
 	size_t bytes;
 	FILE *file;
 	char filenames[10][7] = {"file_0", "file_1", 
-			"file_2", "fole_3", "fole_4",
+			"file_2", "file_3", "file_4",
 			"file_5", "file_6", "file_7", 		
 			"file_8", "file_9"};
 

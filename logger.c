@@ -9,8 +9,16 @@
 #include <sys/stat.h>
 #include <openssl/md5.h>
 #include <stdbool.h>
+#include <errno.h>
 
 bool wrote=false;
+
+void compute_md5(char *str, unsigned char digest[32]) {
+    MD5_CTX ctx;
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, str, strlen(str));
+    MD5_Final(digest, &ctx);
+}
 
 // original fopen
 FILE*
@@ -32,8 +40,10 @@ fopen(const char *path, const char *mode)
 {
 
 	FILE *original_fopen_ret;
-	/* call the original fopen function */
-	original_fopen_ret = fopen_FOR_REAL(path, mode);
+	FILE *(*original_fopen)(const char*, const char*);
+
+	original_fopen = dlsym(RTLD_NEXT, "fopen");
+	original_fopen_ret = (*original_fopen)(path, mode);
 
 	// Logging the action
 
@@ -87,23 +97,60 @@ fopen(const char *path, const char *mode)
 		}
 	}
 
-
-	
-	
-
-	//	Writing to the log file
+	unsigned char digest[16];
+	char *buffer;
 	FILE *fptr;
-	
-	fptr = fopen_FOR_REAL("file_logging.log","a");
-	
+	fptr = (*original_fopen)(path, "r");
+	int old_s; 
+	int denied = 0;
 
-	if(fptr == NULL)
+
+	if(original_fopen_ret == NULL && errno==EACCES)
 	{
-		printf("Error!");   
-		exit(1);             
+		printf("No priviledges!\n"); 
+		denied = 1;
+		original_fopen_ret = (*original_fopen)(path, "r");  
+		// to build Hashing
+		old_s = ftell(fptr);
+		fseek(fptr,0,SEEK_END);
+		int length = ftell(fptr);
+		fseek(fptr,0,SEEK_SET);
+		buffer=malloc(length);
+		fread(buffer,1,length,fptr);
+		fseek(fptr,0,old_s);
+		fclose(fptr);
+		MD5_CTX ctx;
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, buffer, length);
+		MD5_Final(digest, &ctx);
+
+		//
+		original_fopen_ret = NULL;
+			        
+	}else{
+		// to build Hashing
+		old_s = ftell(fptr);
+		fseek(fptr,0,SEEK_END);
+		int length = ftell(fptr);
+		fseek(fptr,0,SEEK_SET);
+		buffer=malloc(length);
+		fread(buffer,1,length,fptr);
+		fseek(fptr,0,old_s);
+		fclose(fptr);
+		MD5_CTX ctx;
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, buffer, length);
+		MD5_Final(digest, &ctx);
+
+		//
 	}
 
-	fprintf(fptr,"%d | %s | %s | %s | %d | ",uid, path, date, timestamp, accType);
+	fptr = (*original_fopen)("file_logging.log", "a+");
+	chmod("file_logging.log", 0777);	
+
+	fprintf(fptr,"%d | %s | %s | %s | %d | %d | ",uid, path, date, timestamp, accType, denied);
+	for (int i = 0; i < 16; i++) fprintf(fptr,"%02x", digest[i]);
+	fprintf(fptr,"\n");
 	fclose(fptr);
 
 	return original_fopen_ret;
@@ -121,39 +168,71 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 	original_fwrite = dlsym(RTLD_NEXT, "fwrite");
 	original_fwrite_ret = (*original_fwrite)(ptr, size, nmemb, stream);
 
+	FILE *(*original_fopen)(const char*, const char*);
+
+	original_fopen = dlsym(RTLD_NEXT, "fopen");
+	
+	int MAXSIZE = 0xFFF;
+    char proclnk[0xFFF];
+    char filename[0xFFF];
+    int fno;
+    ssize_t r;
+
+	fno = fileno(stream);
+	sprintf(proclnk, "/proc/self/fd/%d", fno);
+	r = readlink(proclnk, filename, MAXSIZE);
+	if (r < 0)
+	{
+		printf("failed to readlink\n");
+		exit(1);
+	}
+	filename[r] = '\0';
+
+	printf("\nfilename:%s\n", filename);
 	// Logging the action
 	wrote=true;
 
-    // MD5_Init (&mdContext);
-    // while ((bytes = fread (data, 1, 1024, stream)) != 0){
-    //     MD5_Update (&mdContext, data, bytes);
-	// 	}
-    // MD5_Final (c,&mdContext);
-	MD5_CTX mdContext;
-    int bytes;
-    unsigned char data[1024];
-	unsigned char c[MD5_DIGEST_LENGTH];
-
-    MD5_Init(&mdContext);
-    while ((bytes = fread (data, 1, 1024, stream)) != 0){
-        MD5_Update(&mdContext, data, bytes);
-		}
-    MD5(c,MD5_DIGEST_LENGTH,&mdContext);
-
+	unsigned char digest[16];
+	char *buffer;
 	
+	int old_s = ftell(stream);
+	fseek(stream,0,SEEK_END);
+	int length = ftell(stream);
+	printf("%d\n", length);
+	fseek(stream,0,SEEK_SET);
+	buffer=malloc(length);
+	fread(buffer,1,length,stream);
+	fseek(stream,0,old_s);
+    MD5_CTX ctx;
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, buffer, length);
+    MD5_Final(digest, &ctx);
 
-	
 	FILE *fptr;
-	fptr = fopen_FOR_REAL("file_logging.log","a");
-    
+    fptr = (*original_fopen)("file_logging.log", "a");
 	if(fptr == NULL)
 	{
 		printf("Error!");   
-		exit(1);             
-	}	
-	for(int i = 0; i < MD5_DIGEST_LENGTH; i++)  fprintf(fptr,"%02x",c[i]);
-	fprintf(fptr,"\n");
+		// exit(1);             
+	}
+
+	chmod("file_logging.log", 0777);
+
+	int uid;
+	char date[20];
+    char timestamp[20];
+	uid = getuid();
+	int accType;
 	
+    time_t t;
+    t = time(NULL);
+    struct tm tm = *localtime(&t);
+    sprintf(date,"%d-%d-%d", tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
+    sprintf(timestamp,"%d:%d", tm.tm_hour, tm.tm_min);
+
+	fprintf(fptr,"%d | %s | %s | %s | %d | ",uid, basename(filename), date, timestamp, 2);
+	for (int i = 0; i < 16; i++) fprintf(fptr,"%02x", digest[i]);
+	fprintf(fptr,"\n");
 	fclose(fptr);
 
 	
