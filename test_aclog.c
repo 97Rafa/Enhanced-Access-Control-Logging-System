@@ -14,7 +14,7 @@ int main()
 
 	/* example source code */
 
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 5; i++) {
 
 		file = fopen(filenames[i], "w+");
 		if (file == NULL) 

@@ -1,64 +1,82 @@
-#define _GNU_SOURCE
-
-#include <time.h>
 #include <stdio.h>
-#include <dlfcn.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <openssl/md5.h>
+#include <time.h>
+#include <stdlib.h>
+
+struct entry {
+
+	int uid; /* user id (positive integer) */
+	int access_type; /* access type values [0-2] */
+	int action_denied; /* is action denied values [0-1] */
+
+	char *date; /* file access date */
+	char *time; /* file access time */
+
+	char *file; /* filename (string) */
+	char *fingerprint; /* file fingerprint */
+
+	/* add here other fields if necessary */
+	/* ... */
+	/* ... */
+
+};
+
 
 int main(){
-    // Logging the action
-    char *path = "test.txt";
-	char uid[100];
-	char date[20];
-    char timestamp[20];
 
+    FILE *file;
+    char charbuff[255];
+    file = fopen("file_logging.log", "r");
+    char c;
+    int i=0;
+    char terms[7][20];
+    int logsCount=0;
 
-	// uid = itoa(getuid());
-    sprintf(uid,"%d", getuid());
-	
-    time_t t;
-    t = time(NULL);
-    struct tm tm = *localtime(&t);
-    sprintf(date,"%02d-%02d-%d", tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
-    sprintf(timestamp,"%02d:%02d", tm.tm_hour, tm.tm_min);
-
-	
-	unsigned char c[MD5_DIGEST_LENGTH];
+    // Extract characters from file and store in character c
+    for (c = getc(file); c != EOF; c = getc(file)){
+        if (c == '\n'){ // Increment count if this character is newline
+            logsCount = logsCount + 1;
+        }
+    }
+    fseek(file, 0, SEEK_SET); //restores file pointer
+    struct entry test[logsCount];
     
-    FILE *inFile = fopen ("malakies.txt", "a");
-    MD5_CTX mdContext;
-    int bytes;
-    unsigned char data[1024];
+    i=0;
+    int line=0;
+    do{
+        charbuff[i] = fgetc(file);   
+        
+        if(charbuff[i] == '\n'){
+            // Extract the first token
+            i=0;
+            char * token = strtok(charbuff, " | ");
+            // terms[0] = token;
+            int j=0;
+            // loop through the string to extract all other tokens
+            while(token != NULL) {
+                // printf( " %s\n", token ); //printing each token
+                strcpy(terms[j],token);
+                token = strtok(NULL, " | ");
+                j++;
+                
+            }
 
-    MD5_Init(&mdContext);
-    while ((bytes = fread (data, 1, 1024, inFile)) != 0){
-        MD5_Update(&mdContext, data, bytes);
-		}
-    MD5_Final(c,&mdContext);
-	fclose (inFile);
-
-	
-
-	
-	FILE *fptr;
-	fptr = fopen("file_logging.log","a");
-    
-	if(fptr == NULL)
-	{
-		printf("Error!");   
-		exit(1);             
-	}
-	fprintf(fptr,"%s | %s | %s | %s | ",uid, path, date, timestamp);
-	
-	for(int i = 0; i < MD5_DIGEST_LENGTH; i++)  fprintf(fptr,"%02x",c[i]);
-	fprintf(fptr,"\n");
-	
-	fclose(fptr);
-
-
-    return 0;
+            test[line].uid = atoi(terms[0]);
+            test[line].file = terms[1];
+            test[line].date = terms[2];
+            test[line].time = terms[3];
+            test[line].access_type = atoi(terms[4]);
+            test[line].action_denied = atoi(terms[5]);
+            test[line].fingerprint = terms[6];
+            // printf("%d\n",test[line].uid);
+            // printf("%s\n",test[line].file);
+            // printf("%s\n",test[line].date);
+            // printf("%s\n",test[line].time);
+            // printf("%d\n",test[line].access_type);
+            // printf("%d\n",test[line].action_denied);
+            // printf("%s\n",test[line].fingerprint);            
+            line++;            
+        }        
+        i++;
+    }while(!feof(file));
 }

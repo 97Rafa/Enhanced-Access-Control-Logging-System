@@ -1,13 +1,15 @@
-all: logger acmonitor test_aclog
+all: logger acmonitor test_aclog rsa
 
 logger: logger.c
-	gcc -Wall -fPIC -shared -o logger.so logger.c -lcrypto -ldl 
+	gcc -Wall -Wno-deprecated-declarations -fPIC -shared -o logger.so logger.c -lcrypto -ldl 
 
 acmonitor: acmonitor.c 
 	gcc acmonitor.c -o acmonitor
 
 test_aclog: test_aclog.c 
 	gcc test_aclog.c -o test_aclog
+
+runNEncrypt: run generate encrypt
 
 run: logger.so test_aclog
 	LD_PRELOAD=./logger.so ./test_aclog

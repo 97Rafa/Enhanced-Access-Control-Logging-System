@@ -56,8 +56,8 @@ fopen(const char *path, const char *mode)
     time_t t;
     t = time(NULL);
     struct tm tm = *localtime(&t);
-    sprintf(date,"%d-%d-%d", tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
-    sprintf(timestamp,"%d:%d", tm.tm_hour, tm.tm_min);
+    sprintf(date,"%02d-%02d-%d", tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
+    sprintf(timestamp,"%02d:%02d", tm.tm_hour, tm.tm_min);
 
 	if(strcmp(mode, "r") == 0){
 		accType = 1;
@@ -188,7 +188,6 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 	}
 	filename[r] = '\0';
 
-	printf("\nfilename:%s\n", filename);
 	// Logging the action
 	wrote=true;
 
@@ -198,7 +197,6 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 	int old_s = ftell(stream);
 	fseek(stream,0,SEEK_END);
 	int length = ftell(stream);
-	printf("%d\n", length);
 	fseek(stream,0,SEEK_SET);
 	buffer=malloc(length);
 	fread(buffer,1,length,stream);
@@ -222,15 +220,14 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 	char date[20];
     char timestamp[20];
 	uid = getuid();
-	int accType;
 	
     time_t t;
     t = time(NULL);
     struct tm tm = *localtime(&t);
-    sprintf(date,"%d-%d-%d", tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
-    sprintf(timestamp,"%d:%d", tm.tm_hour, tm.tm_min);
+    sprintf(date,"%02d-%02d-%d", tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
+    sprintf(timestamp,"%02d:%02d", tm.tm_hour, tm.tm_min);
 
-	fprintf(fptr,"%d | %s | %s | %s | %d | ",uid, basename(filename), date, timestamp, 2);
+	fprintf(fptr,"%d | %s | %s | %s | %d | %d | ",uid, basename(filename), date, timestamp, 2, 0);
 	for (int i = 0; i < 16; i++) fprintf(fptr,"%02x", digest[i]);
 	fprintf(fptr,"\n");
 	fclose(fptr);
