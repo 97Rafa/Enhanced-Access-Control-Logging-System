@@ -16,13 +16,6 @@ int main()
 
 	char buffer[]={"banana"};
 	char buffer2[10];
-	// file = fopen(filenames[0], "w");
-	// bytes = fwrite(buffer, strlen(buffer)+1, 1, file);
-	// fclose(file);
-
-	// file = fopen(filenames[0], "r");
-	// fread(buffer2, strlen(buffer)+1, 1, file);
-	// fclose(file);
 
 	for (i = 0; i < 10; i++) {
 			file = fopen(filenames[i], "w");
@@ -36,12 +29,20 @@ int main()
 
 	}
 
+	file = fopen(filenames[0], "w");
+	if (file == NULL) 
+		printf("fopen error\n");
+	else {
+		bytes = fwrite(buffer, strlen(buffer)+1, 1, file);
+		fclose(file);
+	}
 
-	/* add your code here */
-	/* ... */
-	/* ... */
-	/* ... */
-	/* ... */
-
-
+	file = fopen(filenames[0], "r");
+	if (file == NULL) 
+		printf("fopen error\n");
+	else {
+		fread(buffer2, strlen(buffer)+1, 1, file);
+		fclose(file);
+	}
+	
 }

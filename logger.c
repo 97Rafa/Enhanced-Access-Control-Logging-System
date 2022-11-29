@@ -11,8 +11,6 @@
 #include <stdbool.h>
 #include <errno.h>
 
-bool wrote=false;
-
 void compute_md5(char *str, unsigned char digest[32]) {
     MD5_CTX ctx;
     MD5_Init(&ctx);
@@ -62,36 +60,28 @@ fopen(const char *path, const char *mode)
 	if(strcmp(mode, "r") == 0){
 		accType = 1;
 	}else if(strcmp(mode, "w") == 0){
-		if(original_fopen_ret != NULL){ //the file exists
+		if(access(path, F_OK) == 0){ //the file exists
 			accType = 3; 
 		}else{ 							//the file does not exist
 			accType = 0;
 		}
 	}else if(strcmp(mode, "a") == 0){
-		accType = 2;
-	}else if(strcmp(mode, "r+") == 0){
-		if(wrote ==  true){ 			//fwrite() was used
+		if(access(path, F_OK) == 0){ //the file exists
 			accType = 2; 
-		}else{		
-			accType = 1;
-		}
-	}else if(strcmp(mode, "w+") == 0){
-		if(original_fopen_ret != NULL){ //the file exists
-			if(wrote==true){ 			//fwrite() was used
-				accType = 3; 
-			}else{
-				accType = 1;
-			}			
 		}else{ 							//the file does not exist
 			accType = 0;
 		}
+	}else if(strcmp(mode, "r+") == 0){
+		accType = 1;
+	}else if(strcmp(mode, "w+") == 0){
+		if(access(path, F_OK) == 0){ //the file exists
+			accType = 3;
+		}else{
+			accType = 0;
+		}
 	}else if(strcmp(mode, "a+") == 0){
-		if(original_fopen_ret != NULL){ //the file exists
-			if(wrote==true){ 			//fwrite() was used
-				accType = 2; 
-			}else{
-				accType = 1;
-			}			
+		if(access(path, F_OK) == 0){ //the file exists
+			accType = 2; 
 		}else{ 							//the file does not exist
 			accType = 0;
 		}
@@ -189,8 +179,6 @@ fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 	filename[r] = '\0';
 
 	// Logging the action
-	wrote=true;
-
 	unsigned char digest[16];
 	char *buffer;
 	
