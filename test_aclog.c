@@ -14,9 +14,19 @@ int main()
 
 	/* example source code */
 
-	for (i = 0; i < 5; i++) {
+	char buffer[]={"banana"};
+	char buffer2[10];
+	// file = fopen(filenames[0], "w");
+	// bytes = fwrite(buffer, strlen(buffer)+1, 1, file);
+	// fclose(file);
 
-		file = fopen(filenames[i], "w+");
+	// file = fopen(filenames[0], "r");
+	// fread(buffer2, strlen(buffer)+1, 1, file);
+	// fclose(file);
+
+	for (i = 0; i < 10; i++) {
+			file = fopen(filenames[i], "w");
+		
 		if (file == NULL) 
 			printf("fopen error\n");
 		else {

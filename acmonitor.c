@@ -6,7 +6,7 @@
 
 struct mal {
 		int uid;
-		int AttCount;
+		int count;
 	};
 
 struct entry {
@@ -116,7 +116,7 @@ list_unauthorized_accesses(FILE *log)
 	for (i = 0; i < usersC; i++)
 	{
 		users[i].uid=0;
-		users[i].AttCount=0;
+		users[i].count=0;
 	}
 
 	int cnt=0;
@@ -141,7 +141,7 @@ list_unauthorized_accesses(FILE *log)
 			for (int k = 0; k < usersC; k++)	
 			{		
 				if(singleLog[j].uid == users[k].uid){
-					users[k].AttCount ++;
+					users[k].count ++;
 				}
 			}			
 		}
@@ -149,8 +149,8 @@ list_unauthorized_accesses(FILE *log)
 
 	for (i = 0; i < usersC; i++)
 	{
-		if(users[i].AttCount >= 7){
-			printf("User: %d\tDenied Actions:%d\n", users[i].uid, users[i].AttCount);
+		if(users[i].count >= 7){
+			printf("User: %d\tDenied Actions:%d\n", users[i].uid, users[i].count);
 		}
 	}
 	printf("***Terminating***\n");
@@ -194,7 +194,6 @@ list_file_modifications(FILE *log, char *file_to_scan)
 			int j=0;
 			// loop through the string to extract all other tokens
 			while(token != NULL) {
-				// printf( "%s\n", token ); //printing each token
 				strcpy(terms[j],token);
 				token = strtok(NULL, " | ");
 				j++;          
@@ -213,8 +212,68 @@ list_file_modifications(FILE *log, char *file_to_scan)
 	
     }while(!feof(log));
 
-	
+	int usersC=1;
+	struct mal users[usersC];
+	// Pick all elements one by one
+    for (i = 1; i < logsCount; i++) {
+        int j = 0;
+        for (j = 0; j < i; j++)
+            if (singleLog[i].uid == singleLog[j].uid)
+                break;
+ 
+        // If not printed earlier, then print it
+        if (i == j)
+            usersC++;
+    }		
 
+	for (i = 0; i < usersC; i++)
+	{
+		users[i].uid=0;
+		users[i].count=0;
+	}
+
+	int cnt=0;
+	for(int i=0;i<logsCount;i++){
+		int e=0;
+		for(int j=0;j<usersC;j++){
+			if(singleLog[i].uid == users[j].uid){
+				e=1;				
+			}
+		}		
+		if (e==0)
+		{
+			users[cnt].uid=singleLog[i].uid;
+			cnt++;
+		}		
+	}
+
+	int counter=0;
+	char *tHash="NULL";
+	int tempUID=0;
+	for (int i = 0; i < logsCount; i++)
+	{
+
+		if (strcmp(singleLog[i].file, file_to_scan)==0)
+		{
+			if (strcmp(tHash, "NULL")==0){
+				tHash = singleLog[i].fingerprint;					
+			}else if(strcmp(tHash, singleLog[i].fingerprint)!=0){
+				for (int j = 0; j < usersC; j++)
+				{
+					if (users[j].uid == singleLog[i].uid)
+					{
+						users[j].count++;
+					}		
+				}
+				tHash = singleLog[i].fingerprint;
+			}			
+		}
+		
+	}
+	for (i = 0; i < usersC; i++)
+	{
+		printf("UID: %d\tFileOperations: %d\n", users[i].uid, users[i].count);
+	}
 	
 	printf("***Terminating***\n");
 	return;
@@ -253,14 +312,6 @@ main(int argc, char *argv[])
 		}
 
 	}
-
-
-	/* add your code here */
-	/* ... */
-	/* ... */
-	/* ... */
-	/* ... */
-
 
 	fclose(log);
 	argc -= optind;
